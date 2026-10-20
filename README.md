@@ -1,6 +1,6 @@
 # GameBoy Emulator
 
-A Game Boy (DMG) emulator written in C# targeting .NET 9.0, using SDL2 for cross-platform graphics, audio, and input.
+A Game Boy (DMG) emulator written in C# targeting .NET 10.0, using SDL2 for cross-platform graphics, audio, and input.
 
 > **Note:** This is a DMG emulator. CGB-only ROMs are detected from the cartridge header and skipped.
 
@@ -115,7 +115,7 @@ Over 180 DMG games have also been tested as working with this emulator.
 
 ## Requirements
 
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [SDL2](https://www.libsdl.org/) runtime library installed on your system
 - `dmg_boot.bin` — Game Boy boot ROM (optional). If present, the Nintendo logo scroll animation plays on startup. If absent, games start directly. **Not included** due to copyright — you must supply your own.
 
