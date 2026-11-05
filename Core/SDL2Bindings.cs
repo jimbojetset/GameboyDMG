@@ -125,8 +125,8 @@ namespace GameboyEmu.Core
             public uint windowID;
             public byte state;
             public byte repeat;
-            private byte padding2;
-            private byte padding3;
+            private readonly byte padding2;
+            private readonly byte padding3;
             public SDL_Keysym keysym;
         }
 
@@ -154,7 +154,7 @@ namespace GameboyEmu.Core
             public byte button;
             public byte state;
             public byte clicks;
-            private byte padding1;
+            private readonly byte padding1;
             public int x;
             public int y;
         }
@@ -277,7 +277,7 @@ namespace GameboyEmu.Core
             public byte channels;
             public byte silence;
             public ushort samples;
-            private ushort padding;
+            private readonly ushort padding;
             public uint size;
             public IntPtr callback;
             public IntPtr userdata;

@@ -18,7 +18,7 @@ namespace GameboyEmu.Core
     public sealed class CPU(MMU _memory, GameBoy _gameboy)
     {
         private readonly MMU memory = _memory;
-        private GameBoy gameboy = _gameboy;
+        private readonly GameBoy gameboy = _gameboy;
         public Registers registers = new();
         // Gets or sets running.
         public bool Running { get; set; } = false;

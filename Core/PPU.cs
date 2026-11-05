@@ -17,14 +17,14 @@ using System.Runtime.CompilerServices;
 
 namespace GameboyEmu.Core
 {
-    public class PPU
+    public class PPU(MMU mmu)
     {
         private const int CyclesPerScanline = 456;
         private const int LcdEnableLyAdvanceCycles = 452;
         private const int Width = 160;
         private const int Height = 144;
 
-        private readonly MMU _mmu;
+        private readonly MMU _mmu = mmu;
 
         public int ScanLineCounter = CyclesPerScanline;
 
@@ -108,12 +108,6 @@ namespace GameboyEmu.Core
                     PaletteLUT[pal * 4 + colIdx] = colours[mapped];
                 }
             }
-        }
-
-        // Initializes ppu.
-        public PPU(MMU mmu)
-        {
-            _mmu = mmu;
         }
 
         // Executes request interrupt.

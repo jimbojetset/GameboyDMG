@@ -194,7 +194,7 @@ namespace GameboyEmu.Core
             GCHandle pin = GCHandle.Alloc(_sampleBuf, GCHandleType.Pinned);
             try
             {
-                SDL.SDL_QueueAudio(_audioDevice, pin.AddrOfPinnedObject(),
+                var s =SDL.SDL_QueueAudio(_audioDevice, pin.AddrOfPinnedObject(),
                     (uint)(_sampleIdx * sizeof(float)));
             }
             finally { pin.Free(); }
@@ -330,7 +330,7 @@ namespace GameboyEmu.Core
         }
     }
 
-    internal sealed class SquareSweepChannel
+    internal sealed class SquareSweepChannel(Func<int>? apuStepProvider = null)
     {
         public bool Enabled;
 
@@ -358,12 +358,12 @@ namespace GameboyEmu.Core
         private int _frequency;
 
         internal static readonly byte[] Duty =
-        {
+        [
             0, 0, 0, 0, 0, 0, 0, 1,
             1, 0, 0, 0, 0, 0, 0, 1,
             1, 0, 0, 0, 0, 1, 1, 1,
             0, 1, 1, 1, 1, 1, 1, 0,
-        };
+        ];
 
         // Executes tick timer.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -421,7 +421,7 @@ namespace GameboyEmu.Core
                         _frequency = nf;
                         NR13 = (byte)(_frequency & 0xFF);
                         NR14 = (byte)((NR14 & 0xF8) | ((_frequency >> 8) & 7));
-                        CalcSweepFreq();
+                        _ = CalcSweepFreq();
                     }
                 }
             }
@@ -506,18 +506,12 @@ namespace GameboyEmu.Core
             _sweepNegUsed = false;
             _sweepTimer = _sweepPeriod > 0 ? _sweepPeriod : 8;
             _sweepEnabled = _sweepPeriod > 0 || _sweepShift > 0;
-            if (_sweepShift > 0) CalcSweepFreq();
+            if (_sweepShift > 0) _ = CalcSweepFreq();
 
             if ((NR12 & 0xF8) == 0) Enabled = false;
         }
 
-        private readonly Func<int>? _apuStepProvider;
-
-        // Initializes square sweep channel.
-        public SquareSweepChannel(Func<int>? apuStepProvider = null)
-        {
-            _apuStepProvider = apuStepProvider;
-        }
+        private readonly Func<int>? _apuStepProvider = apuStepProvider;
 
         // Executes power off dmg.
         public void PowerOffDmg()
@@ -545,7 +539,7 @@ namespace GameboyEmu.Core
         }
     }
 
-    internal sealed class SquareChannel
+    internal sealed class SquareChannel(Func<int>? apuStepProvider = null)
     {
         public bool Enabled;
         public byte NR21, NR22, NR23, NR24;
@@ -640,13 +634,7 @@ namespace GameboyEmu.Core
             if ((NR22 & 0xF8) == 0) Enabled = false;
         }
 
-        private readonly Func<int>? _apuStepProvider;
-
-        // Initializes square channel.
-        public SquareChannel(Func<int>? apuStepProvider = null)
-        {
-            _apuStepProvider = apuStepProvider;
-        }
+        private readonly Func<int>? _apuStepProvider = apuStepProvider;
 
         // Executes power off dmg.
         public void PowerOffDmg()
@@ -670,7 +658,7 @@ namespace GameboyEmu.Core
         }
     }
 
-    internal sealed class WaveChannel
+    internal sealed class WaveChannel(Func<int>? apuStepProvider = null)
     {
         public bool Enabled;
         public byte NR30, NR31, NR32, NR33, NR34;
@@ -830,13 +818,7 @@ namespace GameboyEmu.Core
             _waveRAM[3] = _waveRAM[baseIndex + 3];
         }
 
-        private readonly Func<int>? _apuStepProvider;
-
-        // Initializes wave channel.
-        public WaveChannel(Func<int>? apuStepProvider = null)
-        {
-            _apuStepProvider = apuStepProvider;
-        }
+        private readonly Func<int>? _apuStepProvider = apuStepProvider;
 
         // Executes power off dmg.
         public void PowerOffDmg()
@@ -861,7 +843,7 @@ namespace GameboyEmu.Core
         }
     }
 
-    internal sealed class NoiseChannel
+    internal sealed class NoiseChannel(Func<int>? apuStepProvider = null)
     {
         public bool Enabled;
         public byte NR41, NR42, NR43, NR44;
@@ -871,7 +853,7 @@ namespace GameboyEmu.Core
         private int _volume, _envTimer, _envPeriod; private bool _envUp;
         private ushort _lfsr = 0x7FFF;
 
-        private static readonly int[] Divisors = { 8, 16, 32, 48, 64, 80, 96, 112 };
+        private static readonly int[] Divisors = [8, 16, 32, 48, 64, 80, 96, 112];
 
         // Executes tick timer.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -966,13 +948,7 @@ namespace GameboyEmu.Core
             if ((NR42 & 0xF8) == 0) Enabled = false;
         }
 
-        private readonly Func<int>? _apuStepProvider;
-
-        // Initializes noise channel.
-        public NoiseChannel(Func<int>? apuStepProvider = null)
-        {
-            _apuStepProvider = apuStepProvider;
-        }
+        private readonly Func<int>? _apuStepProvider = apuStepProvider;
 
         // Executes power off dmg.
         public void PowerOffDmg()

@@ -181,7 +181,7 @@ namespace GameboyEmu.Core
             _runTimer.Restart();
             _emulatedCycles = 0;
             _cyclesUntilPace = CyclesPerFrame;
-            pPU.ConsumeFrameReady();
+            _ = pPU.ConsumeFrameReady();
             while (cPU.Running)
             {
                 if (ResetRequested)
@@ -199,7 +199,7 @@ namespace GameboyEmu.Core
                 {
                     byte opcode = mMU!.ReadByteFromMemory(cPU!.registers.PC++);
                     AdvanceHardware(4);
-                    cPU.Execute(opcode);
+                    _ = cPU.Execute(opcode);
                 }
 
                 HandleInterupts();
@@ -278,7 +278,7 @@ namespace GameboyEmu.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void PresentCompletedFrame()
         {
-            pPU.ConsumeFrameReady();
+            _ = pPU.ConsumeFrameReady();
             _onFrameReady?.Invoke();
         }
 
@@ -389,7 +389,7 @@ namespace GameboyEmu.Core
                     if ((pending & (1 << i)) == 0)
                         continue;
 
-                    cPU!.ExecuteInterrupt(i);
+                    _ = cPU!.ExecuteInterrupt(i);
                     break;
                 }
             }
@@ -528,7 +528,7 @@ namespace GameboyEmu.Core
 
         // Executes test bit.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TestBit(byte data, int bitPos)
+        public static bool TestBit(byte data, int bitPos)
         {
             return (data & (1 << bitPos)) != 0;
         }
