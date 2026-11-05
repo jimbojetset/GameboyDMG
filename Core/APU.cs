@@ -194,7 +194,7 @@ namespace GameboyEmu.Core
             GCHandle pin = GCHandle.Alloc(_sampleBuf, GCHandleType.Pinned);
             try
             {
-                var s =SDL.SDL_QueueAudio(_audioDevice, pin.AddrOfPinnedObject(),
+                var s = SDL.SDL_QueueAudio(_audioDevice, pin.AddrOfPinnedObject(),
                     (uint)(_sampleIdx * sizeof(float)));
             }
             finally { pin.Free(); }
