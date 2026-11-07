@@ -13,7 +13,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -25,23 +24,12 @@ namespace GameboyEmu.Core
     {
         public const int ScreenWidth = 160;
         public const int ScreenHeight = 144;
-        public const int Scale = 2;
-
-        private const int GameX = 154;
-        private const int GameY = 145;
+        public const int Scale = 4;
 
         private readonly IntPtr _window;
         private readonly IntPtr _renderer;
         private readonly IntPtr _texture;
-        private IntPtr _bgTexture = IntPtr.Zero;
-        private IntPtr _ledTexture = IntPtr.Zero;
         private bool _disposed;
-
-        private const int LedCx = 101;
-        private const int LedCy = 244;
-        private const int LedRadius = 10;
-        private const int LedGlow = 4;
-        private const int LedTexSize = (LedRadius + LedGlow) * 2;
 
         // Gets or sets is open.
         public bool IsOpen { get; private set; }
@@ -61,9 +49,9 @@ namespace GameboyEmu.Core
                 "GameBoy DMG Emulator",
                 SDL.SDL_WINDOWPOS_CENTERED,
                 SDL.SDL_WINDOWPOS_CENTERED,
-                630,
-                1015,
-                SDL.SDL_WINDOW_SHOWN);
+                ScreenWidth * Scale,
+                ScreenHeight * Scale,
+                SDL.SDL_WINDOW_SHOWN | SDL.SDL_WINDOW_RESIZABLE);
 
             if (_window == IntPtr.Zero)
             {
@@ -80,6 +68,15 @@ namespace GameboyEmu.Core
                 SDL.SDL_DestroyWindow(_window);
                 SDL.SDL_Quit();
                 throw new Exception($"SDL renderer creation failed: {error}");
+            }
+
+            if (SDL.SDL_RenderSetLogicalSize(_renderer, ScreenWidth, ScreenHeight) < 0)
+            {
+                string error = Marshal.PtrToStringAnsi(SDL.SDL_GetError()) ?? "Unknown error";
+                SDL.SDL_DestroyRenderer(_renderer);
+                SDL.SDL_DestroyWindow(_window);
+                SDL.SDL_Quit();
+                throw new Exception($"SDL logical viewport setup failed: {error}");
             }
 
             _texture = SDL.SDL_CreateTexture(
@@ -99,43 +96,9 @@ namespace GameboyEmu.Core
             }
 
             _ = SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-            LoadBackground();
-            CreateLedTexture();
             IsOpen = true;
         }
 
-        // Executes load background.
-        private void LoadBackground()
-        {
-            string bgPath = Path.Combine(AppContext.BaseDirectory, "background.bmp");
-            if (!File.Exists(bgPath))
-                bgPath = "background.bmp";
-            if (!File.Exists(bgPath))
-            {
-                Console.WriteLine("[Display] background.bmp not found — window background will be black.");
-                return;
-            }
-
-            IntPtr rw = SDL.SDL_RWFromFile(bgPath, "rb");
-            if (rw == IntPtr.Zero) return;
-
-            IntPtr surface = SDL.SDL_LoadBMP_RW(rw, 1);
-            if (surface == IntPtr.Zero)
-            {
-                Console.WriteLine($"[Display] Failed to load background.bmp: {Marshal.PtrToStringAnsi(SDL.SDL_GetError())}");
-                return;
-            }
-
-            _bgTexture = SDL.SDL_CreateTextureFromSurface(_renderer, surface);
-            SDL.SDL_FreeSurface(surface);
-
-            if (_bgTexture == IntPtr.Zero)
-                Console.WriteLine($"[Display] Failed to create background texture: {Marshal.PtrToStringAnsi(SDL.SDL_GetError())}");
-            else
-                Console.WriteLine($"[Display] Background loaded: {bgPath}");
-        }
-
-        // Executes create led texture.
         private static bool TryUpdateTexture(IntPtr texture, IntPtr rect, IntPtr pixels, int pitch)
         {
             int result = SDL.SDL_UpdateTexture(texture, rect, pixels, pitch);
@@ -147,51 +110,6 @@ namespace GameboyEmu.Core
             }
 
             return true;
-        }
-
-        private void CreateLedTexture()
-        {
-            uint[] pixels = new uint[LedTexSize * LedTexSize];
-            int cx = LedTexSize / 2;
-            int cy = LedTexSize / 2;
-
-            for (int py = 0; py < LedTexSize; py++)
-            {
-                for (int px = 0; px < LedTexSize; px++)
-                {
-                    double dx = px - cx;
-                    double dy = py - cy;
-                    double dist = Math.Sqrt(dx * dx + dy * dy);
-
-                    if (dist <= LedRadius)
-                    {
-                        double t = dist / LedRadius;
-                        byte g = (byte)(200 * (1.0 - t));
-                        byte b = (byte)(180 * (1.0 - t));
-                        pixels[py * LedTexSize + px] = (uint)(0xFF000000 | (0xFF << 16) | (g << 8) | b);
-                    }
-                    else if (dist <= LedRadius + LedGlow)
-                    {
-                        double t = (dist - LedRadius) / LedGlow;
-                        byte alpha = (byte)(180 * (1.0 - t * t));
-                        pixels[py * LedTexSize + px] = (uint)((alpha << 24) | 0x00DD0000);
-                    }
-                }
-            }
-
-            _ledTexture = SDL.SDL_CreateTexture(
-                _renderer,
-                SDL.SDL_PIXELFORMAT_ARGB8888,
-                SDL.SDL_TEXTUREACCESS_STREAMING,
-                LedTexSize, LedTexSize);
-
-            if (_ledTexture == IntPtr.Zero) return;
-
-            _ = SDL.SDL_SetTextureBlendMode(_ledTexture, 1);
-
-            GCHandle pin = GCHandle.Alloc(pixels, GCHandleType.Pinned);
-            try { _ = TryUpdateTexture(_ledTexture, IntPtr.Zero, pin.AddrOfPinnedObject(), LedTexSize * 4); }
-            finally { pin.Free(); }
         }
 
         // Executes render frame.
@@ -208,24 +126,8 @@ namespace GameboyEmu.Core
                 handle.Free();
             }
 
-            var dst = new SDL.SDL_Rect { x = GameX, y = GameY, w = ScreenWidth * Scale, h = ScreenHeight * Scale };
             _ = SDL.SDL_RenderClear(_renderer);
-            if (_bgTexture != IntPtr.Zero)
-                _ = SDL.SDL_RenderCopy(_renderer, _bgTexture, IntPtr.Zero, IntPtr.Zero);
-            _ = SDL.SDL_RenderCopy(_renderer, _texture, IntPtr.Zero, ref dst);
-            DrawViewportBevel();
-
-            if (_ledTexture != IntPtr.Zero)
-            {
-                var ledDst = new SDL.SDL_Rect
-                {
-                    x = LedCx - LedTexSize / 2,
-                    y = LedCy - LedTexSize / 2,
-                    w = LedTexSize,
-                    h = LedTexSize
-                };
-                _ = SDL.SDL_RenderCopy(_renderer, _ledTexture, IntPtr.Zero, ref ledDst);
-            }
+            _ = SDL.SDL_RenderCopy(_renderer, _texture, IntPtr.Zero, IntPtr.Zero);
             SDL.SDL_RenderPresent(_renderer);
         }
 
@@ -379,8 +281,8 @@ namespace GameboyEmu.Core
 
             int HoverIndexAt(int mx, int my)
             {
-                int gx = (mx - GameX) / Scale;
-                int gy = (my - GameY) / Scale;
+                int gx = mx;
+                int gy = my;
                 if (gx < 4 || gx >= ScreenWidth - 4) return -1;
                 if (gy < listY - 1) return -1;
                 int row = (gy - (listY - 1)) / itemHeight;
@@ -569,48 +471,14 @@ namespace GameboyEmu.Core
                 }
                 finally { pin.Free(); }
 
-                var dst = new SDL.SDL_Rect { x = GameX, y = GameY, w = ScreenWidth * Scale, h = ScreenHeight * Scale };
                 _ = SDL.SDL_RenderClear(_renderer);
-                if (_bgTexture != IntPtr.Zero)
-                    _ = SDL.SDL_RenderCopy(_renderer, _bgTexture, IntPtr.Zero, IntPtr.Zero);
-                _ = SDL.SDL_RenderCopy(_renderer, _menuTexture, IntPtr.Zero, ref dst);
-                DrawViewportBevel();
+                _ = SDL.SDL_RenderCopy(_renderer, _menuTexture, IntPtr.Zero, IntPtr.Zero);
                 SDL.SDL_RenderPresent(_renderer);
 
                 SDL.SDL_Delay(16);
             }
 
             return (null, false, selected, scrollOffset);
-        }
-
-        // Executes draw viewport bevel.
-        private void DrawViewportBevel()
-        {
-            const int BevelWidth = 3;
-            int vw = ScreenWidth * Scale;
-            int vh = ScreenHeight * Scale;
-            int x = GameX;
-            int y = GameY;
-
-            _ = SDL.SDL_SetRenderDrawBlendMode(_renderer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
-
-            _ = SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 120);
-            for (int i = 0; i < BevelWidth; i++)
-            {
-                _ = SDL.SDL_RenderDrawLine(_renderer, x + i, y + i, x + vw - 1 - i, y + i);
-
-                _ = SDL.SDL_RenderDrawLine(_renderer, x + i, y + i, x + i, y + vh - 1 - i);
-            }
-
-            _ = SDL.SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 20);
-            for (int i = 0; i < BevelWidth; i++)
-            {
-                _ = SDL.SDL_RenderDrawLine(_renderer, x + i, y + vh - 1 - i, x + vw - 1 - i, y + vh - 1 - i);
-
-                _ = SDL.SDL_RenderDrawLine(_renderer, x + vw - 1 - i, y + i, x + vw - 1 - i, y + vh - 1 - i);
-            }
-
-            _ = SDL.SDL_SetRenderDrawBlendMode(_renderer, SDL.SDL_BlendMode.SDL_BLENDMODE_NONE);
         }
 
         // Executes show startup error.
@@ -655,11 +523,8 @@ namespace GameboyEmu.Core
                 }
                 finally { pin.Free(); }
 
-                var dst = new SDL.SDL_Rect { x = GameX, y = GameY, w = ScreenWidth * Scale, h = ScreenHeight * Scale };
                 _ = SDL.SDL_RenderClear(_renderer);
-                if (_bgTexture != IntPtr.Zero)
-                    _ = SDL.SDL_RenderCopy(_renderer, _bgTexture, IntPtr.Zero, IntPtr.Zero);
-                _ = SDL.SDL_RenderCopy(_renderer, _menuTexture, IntPtr.Zero, ref dst);
+                _ = SDL.SDL_RenderCopy(_renderer, _menuTexture, IntPtr.Zero, IntPtr.Zero);
                 SDL.SDL_RenderPresent(_renderer);
             }
 
@@ -778,8 +643,6 @@ namespace GameboyEmu.Core
         {
             if (!_disposed)
             {
-                if (_ledTexture != IntPtr.Zero) SDL.SDL_DestroyTexture(_ledTexture);
-                if (_bgTexture != IntPtr.Zero) SDL.SDL_DestroyTexture(_bgTexture);
                 if (_menuTexture != IntPtr.Zero) SDL.SDL_DestroyTexture(_menuTexture);
                 if (_texture != IntPtr.Zero) SDL.SDL_DestroyTexture(_texture);
                 if (_renderer != IntPtr.Zero) SDL.SDL_DestroyRenderer(_renderer);

@@ -68,6 +68,7 @@ namespace GameboyEmu.Core
         public const ushort AUDIO_F32SYS = 0x8120;
 
         public const uint SDL_WINDOW_SHOWN = 0x00000004;
+        public const uint SDL_WINDOW_RESIZABLE = 0x00000020;
         public const int SDL_WINDOWPOS_CENTERED = 0x2FFF0000;
 
         public const uint SDL_RENDERER_ACCELERATED = 0x00000002;
@@ -203,6 +204,9 @@ namespace GameboyEmu.Core
         public static extern IntPtr SDL_CreateRenderer(IntPtr window, int index, uint flags);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SDL_RenderSetLogicalSize(IntPtr renderer, int w, int h);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void SDL_DestroyRenderer(IntPtr renderer);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
@@ -230,44 +234,7 @@ namespace GameboyEmu.Core
         public static extern int SDL_SetRenderDrawColor(IntPtr renderer, byte r, byte g, byte b, byte a);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int SDL_SetTextureBlendMode(IntPtr texture, int blendMode);
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int SDL_SetRenderDrawBlendMode(IntPtr renderer, SDL_BlendMode blendMode);
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int SDL_RenderDrawLine(IntPtr renderer, int x1, int y1, int x2, int y2);
-
-        // Defines the sdl blend mode enum.
-        public enum SDL_BlendMode
-        {
-            SDL_BLENDMODE_NONE = 0x00000000,
-            SDL_BLENDMODE_BLEND = 0x00000001,
-        }
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void SDL_Delay(uint ms);
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SDL_RenderCopy")]
-        public static extern int SDL_RenderCopy(IntPtr renderer, IntPtr texture, IntPtr srcrect, ref SDL_Rect dstrect);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct SDL_Rect
-        {
-            public int x, y, w, h;
-        }
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern IntPtr SDL_RWFromFile(string file, string mode);
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr SDL_LoadBMP_RW(IntPtr src, int freesrc);
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr SDL_CreateTextureFromSurface(IntPtr renderer, IntPtr surface);
-
-        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SDL_FreeSurface(IntPtr surface);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct SDL_AudioSpec
