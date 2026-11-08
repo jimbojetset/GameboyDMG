@@ -1,11 +1,6 @@
 bin/
 obj/
 ROMs/*
-
 dmg_boot.bin
-/.vs/Gameboy
-
-/.vs/CopilotSnapshots/1D542443A269C047A8BBD5E3B47FE950
-
 /.vs
 .gitignore
