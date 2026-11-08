@@ -1,6 +1,6 @@
 bin/
 obj/
-ROMs/
+ROMs/*
 
 dmg_boot.bin
 /.vs/Gameboy
