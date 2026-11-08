@@ -1,6 +1,7 @@
 bin/
 obj/
 ROMs/*
+!ROMS/.gitkeep
 dmg_boot.bin
 /.vs
 .gitignore
